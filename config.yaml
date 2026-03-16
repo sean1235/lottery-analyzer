@@ -1,0 +1,84 @@
+# 澳洲幸运5 数据分析平台配置文件
+
+# 数据源配置
+scraper:
+  url: "https://77180d.com/view/aozxy5/ssc_kjhistory.html"
+  max_pages: 0  # 最多抓取页数（0表示全部）
+  retry_times: 3  # 失败重试次数
+  timeout: 30  # 超时时间（秒）
+  headless: true  # 无头模式（不显示浏览器窗口）
+
+# 数据存储配置
+storage:
+  raw_csv: "data/raw.csv"
+  database: "data/patterns.db"
+  summary_json: "data/summary.json"
+  backup_enabled: true
+  backup_interval: 1  # 备份间隔（天）
+
+# 分析配置
+analysis:
+  # 样本窗口大小
+  windows:
+    - 10
+    - 20
+    - 50
+    - 100
+  
+  # 热号/冷号定义
+  hot_threshold: 0.12  # 频率超过12%视为热号
+  cold_threshold: 0.06  # 频率低于6%视为冷号
+  
+  # 遗漏值阈值
+  extreme_missing: 15  # 超过15期视为极端遗漏
+  
+  # 统计显著性
+  significance_level: 0.05  # p-value阈值
+
+# 用户自定义规则
+rules:
+  - name: "高和值追单"
+    description: "当5个号码总和大于22且单数占多数时触发"
+    condition: "sum > 22 AND odd_count >= 3"
+    alert: "高概率出现单数，建议关注单数号码"
+    enabled: true
+    
+  - name: "热号连开预警"
+    description: "热门号码连续出现3次以上"
+    condition: "hot_number_streak >= 3"
+    alert: "热号连开中，可能继续或中断"
+    enabled: true
+    
+  - name: "冷号回补信号"
+    description: "号码遗漏超过15期"
+    condition: "max_missing > 15"
+    alert: "存在长期遗漏号码，可能回补"
+    enabled: true
+
+# 可视化配置
+visualization:
+  theme: "plotly_white"  # 图表主题
+  default_charts:
+    - "freq_bar"  # 频率柱状图
+    - "long_dragon_line"  # 长龙折线图
+    - "distribution_pie"  # 分布饼图
+    - "heatmap"  # 热力图
+  
+  colors:
+    hot: "#FF6B6B"  # 热号颜色
+    cold: "#4ECDC4"  # 冷号颜色
+    normal: "#95E1D3"  # 普通号码颜色
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "log/app.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# Streamlit 界面配置
+ui:
+  title: "澳洲幸运5 数据分析平台"
+  page_icon: "🎰"
+  layout: "wide"
+  sidebar_state: "expanded"
