@@ -42,23 +42,28 @@ class LotteryScraper:
     def _parse_table_row(self, row) -> dict:
         """解析表格行"""
         try:
+            # 先获取所有文本，避免 stale element 问题
             cells = row.find_elements(By.TAG_NAME, "td")
             if len(cells) < 3:
                 return None
             
+            # 立即提取文本内容
             period_id = cells[0].text.strip()
             draw_time = cells[1].text.strip()
             numbers_text = cells[2].text.strip()
             
+            # 跳过空行或标题行
             if not period_id or not numbers_text:
                 return None
             
+            # 解析号码
             try:
                 numbers = [int(x) for x in numbers_text.split()]
             except ValueError:
                 logger.warning(f"号码解析失败: {numbers_text}")
                 return None
             
+            # 校验数据
             if not self.validator.validate_period(period_id):
                 logger.warning(f"期号格式错误: {period_id}")
                 return None
@@ -89,10 +94,12 @@ class LotteryScraper:
         try:
             logger.info(f"开始访问: {self.url}")
             self.driver.get(self.url)
-            time.sleep(3)
+            time.sleep(3)  # 增加等待时间
             
+            # 打印页面标题确认加载成功
             logger.info(f"页面标题: {self.driver.title}")
             
+            # 调试模式：保存页面源码
             if self.debug:
                 with open("data/page_source.html", "w", encoding="utf-8") as f:
                     f.write(self.driver.page_source)
@@ -105,10 +112,12 @@ class LotteryScraper:
                 logger.info(f"正在爬取第 {page} 页...")
                 
                 try:
+                    # 等待表格加载
                     WebDriverWait(self.driver, 10).until(
                         EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
                     )
                     
+                    # 尝试多种选择器查找表格
                     rows = []
                     try:
                         rows = self.driver.find_elements(By.XPATH, "//table//tr")
@@ -121,6 +130,7 @@ class LotteryScraper:
                         logger.warning("未找到任何表格行")
                         break
                     
+                    # 跳过表头
                     data_rows = rows[1:] if len(rows) > 1 else rows
                     
                     parsed_count = 0
@@ -140,6 +150,7 @@ class LotteryScraper:
                     
                     logger.info(f"本页解析成功 {parsed_count} 行，新增 {scraped_count} 条数据")
                     
+                    # 尝试点击下一页
                     try:
                         next_btn = self.driver.find_element(By.XPATH, "//a[contains(text(), '下一页') or contains(@class, 'next')]")
                         if "disabled" in next_btn.get_attribute("class") or not next_btn.is_enabled():
@@ -168,3 +179,13 @@ class LotteryScraper:
         finally:
             if self.driver:
                 self.driver.quit()
+
+
+def main():
+    """主函数"""
+    scraper = LotteryScraper(headless=True)
+    scraper.scrape(max_pages=10)
+
+
+if __name__ == "__main__":
+    main()
