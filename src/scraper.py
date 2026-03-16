@@ -26,13 +26,17 @@ class LotteryScraper:
         try:
             options = webdriver.ChromeOptions()
             if self.headless:
-                options.add_argument("--headless")
+                options.add_argument("--headless=new")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--disable-gpu")
             options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             
-            service = Service(ChromeDriverManager().install())
+            # 在 Docker 环境中使用系统自带的 chromium 和 chromedriver
+            options.binary_location = "/usr/bin/chromium"
+            service = Service("/usr/bin/chromedriver")
+            
             self.driver = webdriver.Chrome(service=service, options=options)
             logger.info("浏览器驱动初始化成功")
         except Exception as e:
